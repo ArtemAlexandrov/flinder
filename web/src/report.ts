@@ -1,21 +1,17 @@
+import { DEFAULT_LOCALE, formatList, textOf } from './content'
 import {
   bouquets,
   emptyAnswers,
-  flowerLabelMap,
-  gestureLabelMap,
-  occasionLabelMap,
-  occasionReasonMap,
+  getLocaleData,
   optionSwatches,
-  paletteLabelMap,
-  shapeLabelMap,
   validIds,
-  vibeLabelMap,
 } from './data'
 import type {
   AnswerState,
   BouquetCardData,
   BouquetReaction,
   FlowerFamilyId,
+  Locale,
   OccasionId,
   PaletteId,
   RankedBouquet,
@@ -39,22 +35,6 @@ const occasionOrder: OccasionId[] = [
   'achievement',
 ]
 
-function listToHuman(items: string[]) {
-  if (items.length === 0) {
-    return ''
-  }
-
-  if (items.length === 1) {
-    return items[0]
-  }
-
-  if (items.length === 2) {
-    return `${items[0]} и ${items[1]}`
-  }
-
-  return `${items.slice(0, -1).join(', ')} и ${items.at(-1)}`
-}
-
 function dedupe(items: string[]) {
   return [...new Set(items)]
 }
@@ -65,33 +45,59 @@ function paletteMatches(bouquet: BouquetCardData, palette: PaletteId[]) {
   )
 }
 
-function scoreBouquet(bouquet: BouquetCardData, answers: AnswerState, occasion?: OccasionId) {
+function scoreBouquet(
+  bouquet: BouquetCardData,
+  answers: AnswerState,
+  locale: Locale,
+  occasion?: OccasionId,
+) {
+  const labels = getLocaleData(locale)
   let score = bouquet.universal ? 2 : 0
   const reasons: string[] = []
   const concerns: string[] = []
 
   if (answers.vibe && bouquet.vibes.includes(answers.vibe)) {
     score += 3
-    reasons.push(`совпадает по вайбу: ${vibeLabelMap[answers.vibe].toLowerCase()}`)
+    reasons.push(
+      locale === 'ru'
+        ? `совпадает по вайбу: ${labels.vibeLabelMap[answers.vibe].toLowerCase()}`
+        : `matches the vibe: ${labels.vibeLabelMap[answers.vibe].toLowerCase()}`,
+    )
   }
 
   if (answers.shape && bouquet.shapes.includes(answers.shape)) {
     score += 2
-    reasons.push(`по форме это ${shapeLabelMap[answers.shape].toLowerCase()}`)
+    reasons.push(
+      locale === 'ru'
+        ? `по форме это ${labels.shapeLabelMap[answers.shape].toLowerCase()}`
+        : `shape-wise it feels ${labels.shapeLabelMap[answers.shape].toLowerCase()}`,
+    )
   }
 
   if (answers.gestureLevel) {
     if (bouquet.intensity === answers.gestureLevel) {
       score += 2
       reasons.push(
-        `по масштабу жеста это ${gestureLabelMap[answers.gestureLevel].toLowerCase()}`,
+        locale === 'ru'
+          ? `по масштабу жеста это ${labels.gestureLabelMap[
+              answers.gestureLevel
+            ].toLowerCase()}`
+          : `gesture level feels ${labels.gestureLabelMap[
+              answers.gestureLevel
+            ].toLowerCase()}`,
       )
     } else if (answers.gestureLevel === 'quiet' && bouquet.intensity === 'grand') {
       score -= 2
-      concerns.push('может ощущаться слишком громко')
+      concerns.push(
+        locale === 'ru' ? 'может ощущаться слишком громко' : 'may feel too loud',
+      )
     } else if (answers.gestureLevel === 'grand' && bouquet.intensity === 'quiet') {
       score -= 1
-      concerns.push('может показаться слишком скромным')
+      concerns.push(
+        locale === 'ru'
+          ? 'может показаться слишком скромным'
+          : 'may feel a little too modest',
+      )
     }
   }
 
@@ -100,9 +106,15 @@ function scoreBouquet(bouquet: BouquetCardData, answers: AnswerState, occasion?:
   if (matchedPalette.length > 0) {
     score += matchedPalette.length * 2
     reasons.push(
-      `попадает в палитру ${listToHuman(
-        matchedPalette.map((item) => paletteLabelMap[item].toLowerCase()),
-      )}`,
+      locale === 'ru'
+        ? `попадает в палитру ${formatList(
+            matchedPalette.map((item) => labels.paletteLabelMap[item].toLowerCase()),
+            locale,
+          )}`
+        : `lands inside the palette ${formatList(
+            matchedPalette.map((item) => labels.paletteLabelMap[item].toLowerCase()),
+            locale,
+          )}`,
     )
   }
 
@@ -113,9 +125,15 @@ function scoreBouquet(bouquet: BouquetCardData, answers: AnswerState, occasion?:
   if (likedFlowers.length > 0) {
     score += likedFlowers.length * 3
     reasons.push(
-      `есть любимые цветы: ${listToHuman(
-        likedFlowers.map((flower) => flowerLabelMap[flower].toLowerCase()),
-      )}`,
+      locale === 'ru'
+        ? `есть любимые цветы: ${formatList(
+            likedFlowers.map((flower) => labels.flowerLabelMap[flower].toLowerCase()),
+            locale,
+          )}`
+        : `includes favorite flowers: ${formatList(
+            likedFlowers.map((flower) => labels.flowerLabelMap[flower].toLowerCase()),
+            locale,
+          )}`,
     )
   }
 
@@ -126,9 +144,15 @@ function scoreBouquet(bouquet: BouquetCardData, answers: AnswerState, occasion?:
   if (avoidedFlowers.length > 0) {
     score -= avoidedFlowers.length * 8
     concerns.push(
-      `внутри есть ${listToHuman(
-        avoidedFlowers.map((flower) => flowerLabelMap[flower].toLowerCase()),
-      )}`,
+      locale === 'ru'
+        ? `внутри есть ${formatList(
+            avoidedFlowers.map((flower) => labels.flowerLabelMap[flower].toLowerCase()),
+            locale,
+          )}`
+        : `it contains ${formatList(
+            avoidedFlowers.map((flower) => labels.flowerLabelMap[flower].toLowerCase()),
+            locale,
+          )}`,
     )
   }
 
@@ -138,29 +162,43 @@ function scoreBouquet(bouquet: BouquetCardData, answers: AnswerState, occasion?:
     score += reactionWeight[reaction]
 
     if (reaction === 'like') {
-      reasons.push('поймал прямой лайк на примере')
+      reasons.push(
+        locale === 'ru'
+          ? 'поймал прямой лайк на примере'
+          : 'got a direct like in the example round',
+      )
     }
 
     if (reaction === 'maybe') {
-      reasons.push('пример вызвал нейтрально-хорошую реакцию')
+      reasons.push(
+        locale === 'ru'
+          ? 'пример вызвал нейтрально-хорошую реакцию'
+          : 'felt safely okay in the example round',
+      )
     }
 
     if (reaction === 'no') {
-      concerns.push('поймал прямой дизлайк')
+      concerns.push(
+        locale === 'ru' ? 'поймал прямой дизлайк' : 'got a direct dislike in the example round',
+      )
     }
   }
 
   if (occasion) {
     if (bouquet.occasions.includes(occasion)) {
       score += 3
-      reasons.push(`уместен ${occasionReasonMap[occasion]}`)
+      reasons.push(
+        locale === 'ru'
+          ? `уместен ${labels.occasionReasonMap[occasion]}`
+          : `fits well ${labels.occasionReasonMap[occasion]}`,
+      )
     } else if (!bouquet.universal) {
       score -= 1
     }
   }
 
   if (bouquet.caution) {
-    concerns.push(bouquet.caution)
+    concerns.push(textOf(bouquet.caution, locale))
   }
 
   return {
@@ -171,9 +209,9 @@ function scoreBouquet(bouquet: BouquetCardData, answers: AnswerState, occasion?:
   } satisfies RankedBouquet
 }
 
-function rankBouquets(answers: AnswerState, occasion?: OccasionId) {
+function rankBouquets(answers: AnswerState, locale: Locale, occasion?: OccasionId) {
   return [...bouquets]
-    .map((bouquet) => scoreBouquet(bouquet, answers, occasion))
+    .map((bouquet) => scoreBouquet(bouquet, answers, locale, occasion))
     .sort((left, right) => right.score - left.score)
 }
 
@@ -185,37 +223,58 @@ function isHardNoGo(item: RankedBouquet, answers: AnswerState) {
   )
 }
 
-function buildHeadline(answers: AnswerState) {
-  const parts = [
-    answers.vibe ? vibeLabelMap[answers.vibe] : 'Чуткий',
-    answers.shape ? shapeLabelMap[answers.shape] : 'букетный',
-  ]
+function buildHeadline(answers: AnswerState, locale: Locale) {
+  const labels = getLocaleData(locale)
 
-  return `${parts.join(' + ')} вкус`
+  if (answers.vibe) {
+    return locale === 'ru'
+      ? `Букетный вайб: ${labels.vibeLabelMap[answers.vibe].toLowerCase()}`
+      : `Bouquet vibe: ${labels.vibeLabelMap[answers.vibe].toLowerCase()}`
+  }
+
+  return locale === 'ru' ? 'Букетный вайб: безопасно и с заботой' : 'Bouquet vibe: safe and thoughtful'
 }
 
-function buildSummary(answers: AnswerState, safeChoice?: RankedBouquet) {
-  const palette = answers.palette.map((item) => paletteLabelMap[item].toLowerCase())
-  const flowers = answers.likedFlowers.map((item) => flowerLabelMap[item].toLowerCase())
+function buildSummary(answers: AnswerState, locale: Locale, safeChoice?: RankedBouquet) {
+  const labels = getLocaleData(locale)
+  const palette = answers.palette.map((item) => labels.paletteLabelMap[item].toLowerCase())
+  const flowers = answers.likedFlowers.map((item) => labels.flowerLabelMap[item].toLowerCase())
   const bits = [
-    answers.vibe ? vibeLabelMap[answers.vibe].toLowerCase() : null,
-    answers.shape ? shapeLabelMap[answers.shape].toLowerCase() : null,
-    palette.length > 0 ? `палитра: ${listToHuman(palette)}` : null,
-    flowers.length > 0 ? `любимые цветы: ${listToHuman(flowers)}` : null,
+    answers.shape
+      ? locale === 'ru'
+        ? `форма: ${labels.shapeLabelMap[answers.shape].toLowerCase()}`
+        : `shape: ${labels.shapeLabelMap[answers.shape].toLowerCase()}`
+      : null,
+    palette.length > 0
+      ? locale === 'ru'
+        ? `палитра: ${formatList(palette, locale)}`
+        : `palette: ${formatList(palette, locale)}`
+      : null,
+    flowers.length > 0
+      ? locale === 'ru'
+        ? `любимые цветы: ${formatList(flowers, locale)}`
+        : `favorite flowers: ${formatList(flowers, locale)}`
+      : null,
     safeChoice
-      ? `самая безопасная отправная точка: ${safeChoice.bouquet.title.toLowerCase()}`
+      ? locale === 'ru'
+        ? `самая безопасная отправная точка: ${textOf(
+            safeChoice.bouquet.title,
+            locale,
+          ).toLowerCase()}`
+        : `safest starting point: ${textOf(safeChoice.bouquet.title, locale).toLowerCase()}`
       : null,
   ].filter(Boolean)
 
-  return `${bits.join('. ')}.`
+  return bits.length > 0 ? `${bits.join('. ')}.` : locale === 'ru' ? 'Паспорт вкуса собран.' : 'Taste passport generated.'
 }
 
-function buildNoGoItems(answers: AnswerState, ranked: RankedBouquet[]) {
+function buildNoGoItems(locale: Locale, answers: AnswerState, ranked: RankedBouquet[]) {
+  const labels = getLocaleData(locale)
   const items: ReportNoGoItem[] = []
   const seen = new Set<string>()
 
   for (const flower of answers.avoidFlowers) {
-    const label = flowerLabelMap[flower]
+    const label = labels.flowerLabelMap[flower]
     if (seen.has(label)) {
       continue
     }
@@ -223,7 +282,10 @@ function buildNoGoItems(answers: AnswerState, ranked: RankedBouquet[]) {
     seen.add(label)
     items.push({
       title: label,
-      reason: 'Это отмечено как жесткое “нет”, без экспериментов.',
+      reason:
+        locale === 'ru'
+          ? 'Это отмечено как жесткое “нет”, без экспериментов.'
+          : 'This is marked as a hard no, so it should never become an experiment.',
       colors: optionSwatches.flowers[flower],
       emoji: '⛔️',
     })
@@ -235,14 +297,22 @@ function buildNoGoItems(answers: AnswerState, ranked: RankedBouquet[]) {
     }
 
     const bouquet = bouquets.find((item) => item.id === bouquetId)
-    if (!bouquet || seen.has(bouquet.title)) {
+    if (!bouquet) {
       continue
     }
 
-    seen.add(bouquet.title)
+    const title = textOf(bouquet.title, locale)
+    if (seen.has(title)) {
+      continue
+    }
+
+    seen.add(title)
     items.push({
-      title: bouquet.title,
-      reason: 'Этот пример поймал прямой дизлайк в свайп-части.',
+      title,
+      reason:
+        locale === 'ru'
+          ? 'Этот пример поймал прямой дизлайк в свайп-части.'
+          : 'This example got a direct dislike in the visual reaction round.',
       colors: bouquet.colors,
       emoji: bouquet.emoji,
     })
@@ -253,14 +323,24 @@ function buildNoGoItems(answers: AnswerState, ranked: RankedBouquet[]) {
       break
     }
 
-    if (!item.bouquet.caution || seen.has(item.bouquet.title)) {
+    if (!item.bouquet.caution) {
       continue
     }
 
-    seen.add(item.bouquet.title)
+    const title = textOf(item.bouquet.title, locale)
+
+    if (seen.has(title)) {
+      continue
+    }
+
+    seen.add(title)
     items.push({
-      title: item.bouquet.title,
-      reason: item.concerns[0] ?? 'Слишком рискованный вариант для базового выбора.',
+      title,
+      reason:
+        item.concerns[0] ??
+        (locale === 'ru'
+          ? 'Слишком рискованный вариант для базового выбора.'
+          : 'Too risky to keep as a default baseline choice.'),
       colors: item.bouquet.colors,
       emoji: item.bouquet.emoji,
     })
@@ -270,41 +350,62 @@ function buildNoGoItems(answers: AnswerState, ranked: RankedBouquet[]) {
 }
 
 function buildCheatSheet(
+  locale: Locale,
   answers: AnswerState,
   safeChoices: RankedBouquet[],
   noGoItems: ReportNoGoItem[],
 ) {
+  const labels = getLocaleData(locale)
   const lines: string[] = []
 
   if (safeChoices[0]) {
-    lines.push(`Если сомневаешься, бери "${safeChoices[0].bouquet.title}".`)
+    lines.push(
+      locale === 'ru'
+        ? `Если сомневаешься, бери "${textOf(safeChoices[0].bouquet.title, locale)}".`
+        : `If you are unsure, go with "${textOf(safeChoices[0].bouquet.title, locale)}".`,
+    )
   }
 
   if (answers.gestureLevel) {
     lines.push(
-      `По громкости жеста держись уровня: ${gestureLabelMap[
-        answers.gestureLevel
-      ].toLowerCase()}.`,
+      locale === 'ru'
+        ? `По масштабу жеста держись уровня: ${labels.gestureLabelMap[
+            answers.gestureLevel
+          ].toLowerCase()}.`
+        : `Keep the gesture level around: ${labels.gestureLabelMap[
+            answers.gestureLevel
+          ].toLowerCase()}.`,
     )
   }
 
   if (answers.palette.length > 0) {
     lines.push(
-      `Базовая палитра: ${listToHuman(
-        answers.palette.map((item) => paletteLabelMap[item].toLowerCase()),
-      )}.`,
+      locale === 'ru'
+        ? `Базовая палитра: ${formatList(
+            answers.palette.map((item) => labels.paletteLabelMap[item].toLowerCase()),
+            locale,
+          )}.`
+        : `Base palette: ${formatList(
+            answers.palette.map((item) => labels.paletteLabelMap[item].toLowerCase()),
+            locale,
+          )}.`,
     )
   }
 
   if (noGoItems[0]) {
-    lines.push(`Безопасное правило: не бери "${noGoItems[0].title}".`)
+    lines.push(
+      locale === 'ru'
+        ? `Безопасное правило: не бери "${noGoItems[0].title}".`
+        : `Safe rule: do not buy "${noGoItems[0].title}".`,
+    )
   }
 
   return lines.slice(0, 4)
 }
 
-export function generateReport(answers: AnswerState): ReportData {
-  const ranked = rankBouquets(answers)
+export function generateReport(answers: AnswerState, locale: Locale = DEFAULT_LOCALE): ReportData {
+  const labels = getLocaleData(locale)
+  const ranked = rankBouquets(answers, locale)
   const safePool = ranked.filter(
     (item) =>
       !isHardNoGo(item, answers) &&
@@ -314,33 +415,33 @@ export function generateReport(answers: AnswerState): ReportData {
 
   const occasionChoices = occasionOrder.map((occasion) => {
     const bestForOccasion =
-      rankBouquets(answers, occasion).find((item) => !isHardNoGo(item, answers)) ??
+      rankBouquets(answers, locale, occasion).find((item) => !isHardNoGo(item, answers)) ??
       safeChoices[0]
 
     return {
       occasion,
-      label: occasionLabelMap[occasion],
+      label: labels.occasionLabelMap[occasion],
       pick: bestForOccasion,
     }
   })
 
   const moodTags = [
-    answers.vibe ? vibeLabelMap[answers.vibe] : null,
-    answers.shape ? shapeLabelMap[answers.shape] : null,
-    answers.gestureLevel ? gestureLabelMap[answers.gestureLevel] : null,
-    ...answers.palette.slice(0, 2).map((item) => paletteLabelMap[item]),
+    answers.vibe ? labels.vibeLabelMap[answers.vibe] : null,
+    answers.shape ? labels.shapeLabelMap[answers.shape] : null,
+    answers.gestureLevel ? labels.gestureLabelMap[answers.gestureLevel] : null,
+    ...answers.palette.slice(0, 2).map((item) => labels.paletteLabelMap[item]),
   ].filter(Boolean) as string[]
 
-  const noGoItems = buildNoGoItems(answers, ranked)
+  const noGoItems = buildNoGoItems(locale, answers, ranked)
 
   return {
-    headline: buildHeadline(answers),
-    summary: buildSummary(answers, safeChoices[0]),
+    headline: buildHeadline(answers, locale),
+    summary: buildSummary(answers, locale, safeChoices[0]),
     moodTags,
     safeChoices,
     occasionChoices,
     noGoItems,
-    cheatSheet: buildCheatSheet(answers, safeChoices, noGoItems),
+    cheatSheet: buildCheatSheet(locale, answers, safeChoices, noGoItems),
   }
 }
 

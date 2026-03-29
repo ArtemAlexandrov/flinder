@@ -1,3 +1,6 @@
+export type Locale = 'ru' | 'en'
+export type LocalizedText = Record<Locale, string>
+
 export type VibeId = 'soft' | 'bright' | 'elegant' | 'dramatic'
 export type PaletteId =
   | 'blush'
@@ -24,19 +27,19 @@ export type BouquetReaction = 'like' | 'maybe' | 'no'
 
 export interface VisualOption<T extends string = string> {
   id: T
-  label: string
-  hint: string
+  label: LocalizedText
+  hint: LocalizedText
   emoji: string
-  celebration: string
+  celebration: LocalizedText
   swatch?: string[]
 }
 
 export interface BaseQuestion {
   id: string
-  eyebrow: string
-  title: string
-  subtitle: string
-  helper?: string
+  eyebrow: LocalizedText
+  title: LocalizedText
+  subtitle: LocalizedText
+  helper?: LocalizedText
 }
 
 export interface SingleQuestion extends BaseQuestion {
@@ -64,9 +67,9 @@ export type Question = SingleQuestion | MultiQuestion | BouquetQuestion
 
 export interface BouquetCardData {
   id: string
-  title: string
-  subtitle: string
-  note: string
+  title: LocalizedText
+  subtitle: LocalizedText
+  note: LocalizedText
   colors: string[]
   photoUrl: string
   emoji: string
@@ -76,7 +79,7 @@ export interface BouquetCardData {
   occasions: OccasionId[]
   intensity: GestureLevelId
   universal: boolean
-  caution?: string
+  caution?: LocalizedText
 }
 
 export interface AnswerState {

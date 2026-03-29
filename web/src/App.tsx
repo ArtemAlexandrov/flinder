@@ -1,10 +1,19 @@
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 import './App.css'
+import {
+  buildAppUrl,
+  getCopy,
+  getInitialLocale,
+  localeButtonLabels,
+  persistLocale,
+  syncDocumentLocale,
+  textOf,
+} from './content'
 import {
   bouquets,
   emptyAnswers,
+  getLocaleData,
   questions,
-  reactionLabels,
 } from './data'
 import {
   clearPersistedAnswers,
@@ -20,6 +29,7 @@ import type {
   BouquetCardData,
   BouquetQuestion,
   BouquetReaction,
+  Locale,
   MultiQuestion,
   Question,
   SingleQuestion,
@@ -33,15 +43,19 @@ interface InitialState {
   view: ViewMode
   stepIndex: number
   hasDraft: boolean
+  locale: Locale
 }
 
 function getInitialState(): InitialState {
+  const locale = getInitialLocale()
+
   if (typeof window === 'undefined') {
     return {
       answers: emptyAnswers(),
       view: 'intro',
       stepIndex: 0,
       hasDraft: false,
+      locale,
     }
   }
 
@@ -53,6 +67,7 @@ function getInitialState(): InitialState {
       view: 'report',
       stepIndex: questions.length - 1,
       hasDraft: hasMeaningfulAnswers(sharedAnswers),
+      locale,
     }
   }
 
@@ -63,35 +78,29 @@ function getInitialState(): InitialState {
     view: 'intro',
     stepIndex: 0,
     hasDraft: hasMeaningfulAnswers(storedAnswers),
+    locale,
   }
 }
-
-const introCards = [
-  {
-    title: 'Вместо “объясни словами”',
-    text: 'Девушка выбирает карточки, а не вспоминает названия цветов.',
-  },
-  {
-    title: 'Мини Flinder внутри',
-    text: 'Есть визуальный этап с лайк / может быть / нет по букетам.',
-  },
-  {
-    title: 'Итог без ботаники',
-    text: 'Ты получаешь понятный отчет с безопасными вариантами и красными флагами.',
-  },
-]
 
 const bouquetPositions = [
   { top: '16%', left: '16%', size: 56 },
   { top: '12%', left: '42%', size: 68 },
   { top: '20%', left: '66%', size: 56 },
-  { top: '40%', left: '26%', size: 60 },
-  { top: '36%', left: '54%', size: 72 },
-  { top: '54%', left: '72%', size: 50 },
 ]
 
 function getMultiValues(answers: AnswerState, field: MultiQuestion['field']) {
   return answers[field] as string[]
+}
+
+function buildSelectionTags(answers: AnswerState, locale: Locale) {
+  const labels = getLocaleData(locale)
+
+  return [
+    answers.vibe ? labels.vibeLabelMap[answers.vibe] : null,
+    answers.shape ? labels.shapeLabelMap[answers.shape] : null,
+    answers.palette[0] ? labels.paletteLabelMap[answers.palette[0]] : null,
+    answers.likedFlowers[0] ? labels.flowerLabelMap[answers.likedFlowers[0]] : null,
+  ].filter(Boolean) as string[]
 }
 
 function App() {
@@ -99,14 +108,19 @@ function App() {
   const [answers, setAnswers] = useState(initialState.answers)
   const [view, setView] = useState<ViewMode>(initialState.view)
   const [stepIndex, setStepIndex] = useState(initialState.stepIndex)
+  const [locale, setLocale] = useState<Locale>(initialState.locale)
   const [toast, setToast] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [hasDraft, setHasDraft] = useState(initialState.hasDraft)
   const [isPending, startTransition] = useTransition()
 
-  const report = generateReport(answers)
+  const copy = getCopy(locale)
+  const localeData = getLocaleData(locale)
+  const report = generateReport(answers, locale)
   const currentQuestion = questions[stepIndex]
   const progress = ((stepIndex + 1) / questions.length) * 100
+  const progressRounded = Math.round(progress)
+  const selectionTags = useMemo(() => buildSelectionTags(answers, locale), [answers, locale])
 
   useEffect(() => {
     if (!toast) {
@@ -115,7 +129,7 @@ function App() {
 
     const timer = window.setTimeout(() => {
       setToast(null)
-    }, 1400)
+    }, 1500)
 
     return () => window.clearTimeout(timer)
   }, [toast])
@@ -126,13 +140,14 @@ function App() {
   }, [answers])
 
   useEffect(() => {
-    if (view !== 'report') {
-      return
-    }
+    persistLocale(locale)
+    syncDocumentLocale(locale)
+  }, [locale])
 
-    const share = encodeAnswers(answers)
-    window.history.replaceState(null, '', `${window.location.pathname}#${share}`)
-  }, [answers, view])
+  useEffect(() => {
+    const share = view === 'report' ? encodeAnswers(answers) : undefined
+    window.history.replaceState(null, '', buildAppUrl(locale, share))
+  }, [answers, locale, view])
 
   function pushToast(message: string) {
     setToast(message)
@@ -143,7 +158,7 @@ function App() {
       ...current,
       [question.field]: option.id,
     }))
-    pushToast(option.celebration)
+    pushToast(textOf(option.celebration, locale))
   }
 
   function handleMultiToggle(question: MultiQuestion, option: VisualOption) {
@@ -162,7 +177,7 @@ function App() {
       }
     })
 
-    pushToast(option.celebration)
+    pushToast(textOf(option.celebration, locale))
   }
 
   function handleBouquetReaction(bouquetId: string, reaction: BouquetReaction) {
@@ -173,7 +188,9 @@ function App() {
         [bouquetId]: reaction,
       },
     }))
-    pushToast(`Отмечено: ${reactionLabels[reaction].toLowerCase()}.`)
+    pushToast(
+      `${copy.toasts.reactionPrefix}: ${localeData.reactionLabels[reaction].toLowerCase()}.`,
+    )
   }
 
   function isCurrentStepValid(question: Question | undefined) {
@@ -223,7 +240,6 @@ function App() {
       const freshAnswers = emptyAnswers()
       setAnswers(freshAnswers)
       clearPersistedAnswers()
-      window.history.replaceState(null, '', window.location.pathname)
       setHasDraft(false)
     }
 
@@ -236,17 +252,21 @@ function App() {
     setStepIndex(0)
   }
 
+  function changeLocale(nextLocale: Locale) {
+    startTransition(() => {
+      setLocale(nextLocale)
+    })
+  }
+
   async function copyShareLink() {
     try {
-      const share = `${window.location.origin}${window.location.pathname}#${encodeAnswers(
-        answers,
-      )}`
+      const share = `${window.location.origin}${buildAppUrl(locale, encodeAnswers(answers))}`
       await navigator.clipboard.writeText(share)
       setCopied(true)
-      pushToast('Ссылка скопирована.')
+      pushToast(copy.toasts.copied)
       window.setTimeout(() => setCopied(false), 1800)
     } catch {
-      pushToast('Не вышло скопировать ссылку.')
+      pushToast(copy.toasts.copyFailed)
     }
   }
 
@@ -257,19 +277,33 @@ function App() {
     setView('intro')
     setHasDraft(false)
     clearPersistedAnswers()
-    window.history.replaceState(null, '', window.location.pathname)
   }
 
   return (
     <div className="page-shell">
       <header className="topbar">
-        <div>
-          <p className="brand-kicker">Flower passport builder</p>
+        <div className="topbar__brand">
+          <p className="brand-kicker">{copy.topbar.kicker}</p>
           <h1>Flinder</h1>
         </div>
-        <p className="topbar-note">
-          Визуальный квиз, который превращает вкусы в понятный отчет.
-        </p>
+
+        <div className="topbar__aside">
+          <div className="language-switch" aria-label={copy.localeLabel}>
+            {(['ru', 'en'] as Locale[]).map((value) => (
+              <button
+                className={`language-switch__button${
+                  locale === value ? ' language-switch__button--active' : ''
+                }`}
+                key={value}
+                onClick={() => changeLocale(value)}
+                type="button"
+              >
+                {localeButtonLabels[value]}
+              </button>
+            ))}
+          </div>
+          <p className="topbar-note">{copy.topbar.note}</p>
+        </div>
       </header>
 
       {toast ? <div className="toast">{toast}</div> : null}
@@ -278,19 +312,25 @@ function App() {
         <main className="intro-layout">
           <section className="hero-card">
             <div className="hero-copy">
-              <p className="section-kicker">Формат, который подойдет лучше всего</p>
-              <h2>Не чистый Tinder, а гибрид: быстрый квиз + визуальные реакции на букеты</h2>
-              <p className="hero-text">
-                Так девушке не нужно знать названия цветов, а тебе потом не придется
-                расшифровывать полуслово про “вот такие нежные, но не слишком плотные”.
-              </p>
+              <p className="section-kicker">{copy.intro.kicker}</p>
+              <h2>{copy.intro.title}</h2>
+              <p className="hero-text">{copy.intro.text}</p>
+
+              <div className="hero-facts">
+                {copy.intro.facts.map((fact) => (
+                  <span className="hero-fact" key={fact}>
+                    {fact}
+                  </span>
+                ))}
+              </div>
+
               <div className="hero-actions">
                 <button className="button button--primary" onClick={() => startQuiz(false)}>
-                  Собрать flower-passport
+                  {copy.intro.primaryCta}
                 </button>
                 {hasDraft ? (
                   <button className="button button--secondary" onClick={() => startQuiz(true)}>
-                    Продолжить черновик
+                    {copy.intro.resumeCta}
                   </button>
                 ) : null}
               </div>
@@ -298,19 +338,19 @@ function App() {
 
             <div className="hero-visual" aria-hidden="true">
               <div className="hero-gallery">
-                <BouquetArt bouquet={bouquets[0]} large />
+                <BouquetArt bouquet={bouquets[0]} large locale={locale} />
                 <div className="hero-gallery__stack">
-                  <BouquetArt bouquet={bouquets[1]} />
-                  <BouquetArt bouquet={bouquets[5]} />
+                  <BouquetArt bouquet={bouquets[1]} locale={locale} />
+                  <BouquetArt bouquet={bouquets[5]} locale={locale} />
                 </div>
               </div>
-              <div className="hero-chip hero-chip--top">меньше слов</div>
-              <div className="hero-chip hero-chip--bottom">больше примеров</div>
+              <div className="hero-chip hero-chip--top">{copy.intro.chips.top}</div>
+              <div className="hero-chip hero-chip--bottom">{copy.intro.chips.bottom}</div>
             </div>
           </section>
 
           <section className="mini-grid">
-            {introCards.map((card) => (
+            {copy.intro.cards.map((card) => (
               <article className="mini-card" key={card.title}>
                 <h3>{card.title}</h3>
                 <p>{card.text}</p>
@@ -320,22 +360,21 @@ function App() {
 
           <section className="preview-card">
             <div className="preview-copy">
-              <p className="section-kicker">Что будет в финале</p>
-              <h2>Отчет, которым реально можно пользоваться в цветочном магазине</h2>
+              <p className="section-kicker">{copy.intro.preview.kicker}</p>
+              <h2>{copy.intro.preview.title}</h2>
               <ul className="plain-list">
-                <li>3 безопасных букета “если сомневаюсь, беру это”</li>
-                <li>Подходящие варианты на обычный день, день рождения, извинение и повод</li>
-                <li>Отдельная секция “не дарить ни в коем случае”</li>
-                <li>Ссылка, которую можно переслать без регистрации и бэкенда</li>
+                {copy.intro.preview.bullets.map((bullet) => (
+                  <li key={bullet}>{bullet}</li>
+                ))}
               </ul>
             </div>
             <div className="preview-stack">
               {report.safeChoices.slice(0, 2).map((item) => (
                 <article className="report-preview" key={item.bouquet.id}>
-                  <BouquetArt bouquet={item.bouquet} />
+                  <BouquetArt bouquet={item.bouquet} locale={locale} />
                   <div>
-                    <strong>{item.bouquet.title}</strong>
-                    <p>{item.bouquet.subtitle}</p>
+                    <strong>{textOf(item.bouquet.title, locale)}</strong>
+                    <p>{textOf(item.bouquet.subtitle, locale)}</p>
                   </div>
                 </article>
               ))}
@@ -347,19 +386,48 @@ function App() {
       {view === 'quiz' ? (
         <main className="quiz-layout">
           <section className="progress-card">
-            <div className="progress-copy">
-              <p className="section-kicker">
-                {currentQuestion.eyebrow} из {questions.length}
-              </p>
-              <h2>{currentQuestion.title}</h2>
-              <p>{currentQuestion.subtitle}</p>
-              {currentQuestion.helper ? (
-                <p className="helper-copy">{currentQuestion.helper}</p>
-              ) : null}
+            <div className="progress-card__top">
+              <div className="progress-copy">
+                <p className="section-kicker">
+                  {textOf(currentQuestion.eyebrow, locale)} / {questions.length}
+                </p>
+                <h2>{textOf(currentQuestion.title, locale)}</h2>
+                <p>{textOf(currentQuestion.subtitle, locale)}</p>
+                {currentQuestion.helper ? (
+                  <p className="helper-copy">{textOf(currentQuestion.helper, locale)}</p>
+                ) : null}
+              </div>
+              <div className="progress-card__badge">
+                <strong>{progressRounded}%</strong>
+                <span>{copy.quiz.progressLabel}</span>
+              </div>
             </div>
             <div className="progress-bar">
               <div className="progress-bar__fill" style={{ width: `${progress}%` }} />
             </div>
+          </section>
+
+          <section className="quiz-glance">
+            <article className="quiz-glance__card">
+              <p className="section-kicker">{copy.quiz.nudgeKicker}</p>
+              <h3>{copy.quiz.nudges[Math.min(stepIndex, copy.quiz.nudges.length - 1)]}</h3>
+              <p>{copy.quiz.reactionLegend}</p>
+            </article>
+
+            <article className="quiz-glance__card">
+              <p className="section-kicker">{copy.quiz.summaryKicker}</p>
+              {selectionTags.length > 0 ? (
+                <div className="selection-tray">
+                  {selectionTags.map((tag) => (
+                    <span className="selection-pill" key={tag}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p>{copy.quiz.summaryEmpty}</p>
+              )}
+            </article>
           </section>
 
           <section className="question-card">
@@ -367,10 +435,12 @@ function App() {
               <div className="option-grid">
                 {currentQuestion.options.map((option) => (
                   <OptionCard
+                    badgeLabel={copy.pickedBadge}
                     key={option.id}
+                    locale={locale}
+                    onClick={() => handleSingleSelect(currentQuestion, option)}
                     option={option}
                     selected={answers[currentQuestion.field] === option.id}
-                    onClick={() => handleSingleSelect(currentQuestion, option)}
                   />
                 ))}
               </div>
@@ -380,24 +450,26 @@ function App() {
               <>
                 <div className="multi-summary">
                   <span>
-                    Выбрано: {answers[currentQuestion.field].length}
+                    {copy.quiz.selectedLabel}: {answers[currentQuestion.field].length}
                     {currentQuestion.maxSelections ? ` / ${currentQuestion.maxSelections}` : ''}
                   </span>
                   {currentQuestion.minSelections > 0 ? (
-                    <span>Минимум: {currentQuestion.minSelections}</span>
+                    <span>
+                      {copy.quiz.minimumLabel}: {currentQuestion.minSelections}
+                    </span>
                   ) : (
-                    <span>Можно пропустить</span>
+                    <span>{copy.quiz.canSkip}</span>
                   )}
                 </div>
                 <div className="option-grid">
                   {currentQuestion.options.map((option) => (
                     <OptionCard
+                      badgeLabel={copy.pickedBadge}
                       key={option.id}
-                      option={option}
-                      selected={getMultiValues(answers, currentQuestion.field).includes(
-                        option.id,
-                      )}
+                      locale={locale}
                       onClick={() => handleMultiToggle(currentQuestion, option)}
+                      option={option}
+                      selected={getMultiValues(answers, currentQuestion.field).includes(option.id)}
                     />
                   ))}
                 </div>
@@ -406,23 +478,25 @@ function App() {
 
             {currentQuestion.type === 'bouquet' ? (
               <BouquetQuestionView
-                question={currentQuestion}
                 answers={answers}
+                locale={locale}
                 onReact={handleBouquetReaction}
+                question={currentQuestion}
               />
             ) : null}
           </section>
 
           <footer className="wizard-nav">
-            <button className="button button--ghost" onClick={goBack}>
-              Назад
+            <button className="button button--ghost" onClick={goBack} type="button">
+              {copy.quiz.back}
             </button>
             <button
               className="button button--primary"
               disabled={!isCurrentStepValid(currentQuestion) || isPending}
               onClick={goNext}
+              type="button"
             >
-              {stepIndex === questions.length - 1 ? 'Собрать отчет' : 'Дальше'}
+              {stepIndex === questions.length - 1 ? copy.quiz.buildReport : copy.quiz.next}
             </button>
           </footer>
         </main>
@@ -432,9 +506,13 @@ function App() {
         <main className="report-layout">
           <section className="report-hero">
             <div className="report-hero__copy">
-              <p className="section-kicker">Готовый flower-passport</p>
+              <div className="report-hero__meta">
+                <p className="section-kicker">{copy.report.heroKicker}</p>
+                <span className="report-stamp">{copy.report.shareReady}</span>
+              </div>
               <h2>{report.headline}</h2>
               <p>{report.summary}</p>
+              <p className="report-hint">{copy.report.shareHint}</p>
               <div className="tag-row">
                 {report.moodTags.map((tag) => (
                   <span className="tag" key={tag}>
@@ -444,14 +522,18 @@ function App() {
               </div>
             </div>
             <div className="report-hero__actions">
-              <button className="button button--primary" onClick={copyShareLink}>
-                {copied ? 'Ссылка скопирована' : 'Скопировать ссылку'}
+              <button className="button button--primary" onClick={copyShareLink} type="button">
+                {copied ? copy.report.copied : copy.report.copyLink}
               </button>
-              <button className="button button--secondary" onClick={() => window.print()}>
-                Печать / PDF
+              <button
+                className="button button--secondary"
+                onClick={() => window.print()}
+                type="button"
+              >
+                {copy.report.print}
               </button>
-              <button className="button button--ghost" onClick={editAnswers}>
-                Подправить ответы
+              <button className="button button--ghost" onClick={editAnswers} type="button">
+                {copy.report.edit}
               </button>
             </div>
           </section>
@@ -459,18 +541,18 @@ function App() {
           <section className="report-section">
             <div className="section-heading">
               <div>
-                <p className="section-kicker">Безопасная база</p>
-                <h3>Букеты, которые хорошо работают почти всегда</h3>
+                <p className="section-kicker">{copy.report.safeKicker}</p>
+                <h3>{copy.report.safeTitle}</h3>
               </div>
             </div>
             <div className="report-grid">
               {report.safeChoices.map((item) => (
                 <article className="report-card" key={item.bouquet.id}>
-                  <BouquetArt bouquet={item.bouquet} />
+                  <BouquetArt bouquet={item.bouquet} locale={locale} />
                   <div className="report-card__body">
                     <div>
-                      <h4>{item.bouquet.title}</h4>
-                      <p>{item.bouquet.subtitle}</p>
+                      <h4>{textOf(item.bouquet.title, locale)}</h4>
+                      <p>{textOf(item.bouquet.subtitle, locale)}</p>
                     </div>
                     <ul className="plain-list">
                       {item.reasons.map((reason) => (
@@ -486,8 +568,8 @@ function App() {
           <section className="report-section">
             <div className="section-heading">
               <div>
-                <p className="section-kicker">По случаям</p>
-                <h3>Что дарить в разном контексте</h3>
+                <p className="section-kicker">{copy.report.occasionKicker}</p>
+                <h3>{copy.report.occasionTitle}</h3>
               </div>
             </div>
             <div className="occasion-grid">
@@ -495,10 +577,10 @@ function App() {
                 <article className="occasion-card" key={entry.occasion}>
                   <div className="occasion-card__header">
                     <span>{entry.label}</span>
-                    <strong>{entry.pick.bouquet.title}</strong>
+                    <strong>{textOf(entry.pick.bouquet.title, locale)}</strong>
                   </div>
-                  <BouquetArt bouquet={entry.pick.bouquet} />
-                  <p>{entry.pick.bouquet.note}</p>
+                  <BouquetArt bouquet={entry.pick.bouquet} locale={locale} />
+                  <p>{textOf(entry.pick.bouquet.note, locale)}</p>
                 </article>
               ))}
             </div>
@@ -507,8 +589,8 @@ function App() {
           <section className="report-section report-section--alert">
             <div className="section-heading">
               <div>
-                <p className="section-kicker">Красные флаги</p>
-                <h3>Что не стоит дарить</h3>
+                <p className="section-kicker">{copy.report.noGoKicker}</p>
+                <h3>{copy.report.noGoTitle}</h3>
               </div>
             </div>
             <div className="no-go-grid">
@@ -535,8 +617,8 @@ function App() {
 
           <section className="cheat-sheet">
             <div>
-              <p className="section-kicker">Короткая шпаргалка для парня</p>
-              <h3>Как не ошибиться с выбором</h3>
+              <p className="section-kicker">{copy.report.cheatKicker}</p>
+              <h3>{copy.report.cheatTitle}</h3>
             </div>
             <ul className="plain-list">
               {report.cheatSheet.map((line) => (
@@ -546,8 +628,8 @@ function App() {
           </section>
 
           <footer className="report-footer">
-            <button className="button button--ghost" onClick={resetEverything}>
-              Пройти заново
+            <button className="button button--ghost" onClick={resetEverything} type="button">
+              {copy.report.restart}
             </button>
           </footer>
         </main>
@@ -558,10 +640,14 @@ function App() {
 
 function OptionCard({
   option,
+  locale,
+  badgeLabel,
   selected,
   onClick,
 }: {
   option: VisualOption
+  locale: Locale
+  badgeLabel: string
   selected: boolean
   onClick: () => void
 }) {
@@ -573,11 +659,11 @@ function OptionCard({
     >
       <div className="option-card__top">
         <span className="option-card__emoji">{option.emoji}</span>
-        {selected ? <span className="option-card__badge">твое</span> : null}
+        {selected ? <span className="option-card__badge">{badgeLabel}</span> : null}
       </div>
       <div className="option-card__body">
-        <strong>{option.label}</strong>
-        <p>{option.hint}</p>
+        <strong>{textOf(option.label, locale)}</strong>
+        <p>{textOf(option.hint, locale)}</p>
       </div>
       {option.swatch ? (
         <div className="swatch-row">
@@ -593,19 +679,26 @@ function OptionCard({
 function BouquetQuestionView({
   question,
   answers,
+  locale,
   onReact,
 }: {
   question: BouquetQuestion
   answers: AnswerState
+  locale: Locale
   onReact: (bouquetId: string, reaction: BouquetReaction) => void
 }) {
+  const localeData = getLocaleData(locale)
   const ratedCount = Object.keys(answers.bouquetReactions).length
 
   return (
     <>
       <div className="multi-summary">
-        <span>Оценено: {ratedCount}</span>
-        <span>Нужно минимум: {question.minSelections}</span>
+        <span>
+          {locale === 'ru' ? 'Оценено' : 'Rated'}: {ratedCount}
+        </span>
+        <span>
+          {locale === 'ru' ? 'Нужно минимум' : 'Need at least'}: {question.minSelections}
+        </span>
       </div>
       <div className="bouquet-grid">
         {question.bouquetIds.map((bouquetId) => {
@@ -616,22 +709,18 @@ function BouquetQuestionView({
 
           return (
             <article className="bouquet-card" key={bouquet.id}>
-              <BouquetArt bouquet={bouquet} />
+              <BouquetArt bouquet={bouquet} locale={locale} />
               <div className="bouquet-card__body">
                 <div>
-                  <h3>{bouquet.title}</h3>
-                  <p>{bouquet.subtitle}</p>
+                  <h3>{textOf(bouquet.title, locale)}</h3>
+                  <p>{textOf(bouquet.subtitle, locale)}</p>
                 </div>
-                <p className="bouquet-note">{bouquet.note}</p>
+                <p className="bouquet-note">{textOf(bouquet.note, locale)}</p>
               </div>
               <div className="reaction-row">
                 {(
-                  [
-                    ['like', 'Очень да'],
-                    ['maybe', 'Норм'],
-                    ['no', 'Нет'],
-                  ] as Array<[BouquetReaction, string]>
-                ).map(([reaction, label]) => (
+                  ['like', 'maybe', 'no'] as BouquetReaction[]
+                ).map((reaction) => (
                   <button
                     className={`reaction-button${
                       answers.bouquetReactions[bouquet.id] === reaction
@@ -642,7 +731,7 @@ function BouquetQuestionView({
                     onClick={() => onReact(bouquet.id, reaction)}
                     type="button"
                   >
-                    {label}
+                    {localeData.reactionLabels[reaction]}
                   </button>
                 ))}
               </div>
@@ -656,15 +745,17 @@ function BouquetQuestionView({
 
 function BouquetArt({
   bouquet,
+  locale,
   large = false,
 }: {
   bouquet: BouquetCardData
+  locale: Locale
   large?: boolean
 }) {
   return (
     <div className={`bouquet-art${large ? ' bouquet-art--large' : ''}`}>
       <img
-        alt={bouquet.title}
+        alt={textOf(bouquet.title, locale)}
         className="bouquet-art__image"
         decoding="async"
         loading="eager"
@@ -672,10 +763,10 @@ function BouquetArt({
       />
       <div className="bouquet-art__overlay" />
       {large
-        ? bouquetPositions.slice(0, 3).map((position, index) => (
+        ? bouquetPositions.map((position, index) => (
             <span
               className="bouquet-art__bloom bouquet-art__bloom--accent"
-              key={`${bouquet.id}-${index}`}
+              key={`${textOf(bouquet.title, locale)}-${index}`}
               style={{
                 top: position.top,
                 left: position.left,
