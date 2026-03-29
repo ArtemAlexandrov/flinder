@@ -9,15 +9,15 @@ const copy = {
     metaTitle: 'Flinder',
     topbar: {
       kicker: 'Flower passport builder',
-      note: 'Визуальный квиз, который превращает вкус в понятный и практичный отчет.',
+      note: 'Несколько простых шагов, после которых получается понятный отчет о вкусах.',
     },
     localeLabel: 'Язык',
     pickedBadge: 'твое',
     intro: {
-      kicker: 'Формат, который подойдет лучше всего',
-      title: 'Не чистый Tinder, а гибрид: быстрый квиз + визуальные реакции на цветочные варианты',
+      kicker: 'Как это работает',
+      title: 'Сначала выбираем стиль и примеры, потом получаем готовый flower-passport',
       text:
-        'Так девушке не нужно знать названия цветов, а тебе потом не придется расшифровывать полуслово про “вот такие нежные, но не перегруженные”.',
+        'Нужно просто пройти по карточкам, отметить что нравится, а что нет, и в конце получится отчет, с которым легко выбирать цветы без догадок.',
       primaryCta: 'Собрать flower-passport',
       resumeCta: 'Продолжить черновик',
       facts: ['3 минуты', 'без ботанического жаргона', 'готовая ссылка для шаринга'],
@@ -27,16 +27,16 @@ const copy = {
       },
       cards: [
         {
-          title: 'Вместо “объясни словами”',
-          text: 'Девушка выбирает карточки, а не вспоминает названия цветов.',
+          title: 'Сначала настроение и стиль',
+          text: 'Выбираешь карточки с тем, что визуально нравится больше всего.',
         },
         {
-          title: 'Мини Flinder внутри',
-          text: 'Есть визуальный этап с лайк / может быть / нет по реальным примерам.',
+          title: 'Потом реальные примеры',
+          text: 'Отмечаешь, какие букеты и цветочные подарки нравятся, а какие нет.',
         },
         {
-          title: 'Итог без ботаники',
-          text: 'Ты получаешь понятный отчет с безопасными вариантами и красными флагами.',
+          title: 'В конце понятный отчет',
+          text: 'Ты получаешь безопасные варианты, подсказки по случаям и список того, что лучше не брать.',
         },
       ],
       preview: {
@@ -109,15 +109,15 @@ const copy = {
     metaTitle: 'Flinder',
     topbar: {
       kicker: 'Flower passport builder',
-      note: 'A visual quiz that turns taste into a practical floral gift brief.',
+      note: 'A few simple steps that turn taste into a clear and practical preference report.',
     },
     localeLabel: 'Language',
     pickedBadge: 'picked',
     intro: {
-      kicker: 'The best format for this problem',
-      title: 'Not pure Tinder, but a hybrid: a quick quiz + visual reactions to floral gift examples',
+      kicker: 'How it works',
+      title: 'First choose the style and examples, then get a ready-to-use flower passport',
       text:
-        'She does not need to remember flower names, and you do not have to decode vague phrases like “soft, but not too busy, while still not boring.”',
+        'Just move through the cards, mark what feels right and what does not, and the result becomes a clear report you can actually use when buying flowers.',
       primaryCta: 'Build the flower passport',
       resumeCta: 'Resume draft',
       facts: ['3-minute flow', 'no florist jargon', 'shareable result'],
@@ -127,16 +127,16 @@ const copy = {
       },
       cards: [
         {
-          title: 'Instead of “explain it in words”',
-          text: 'She picks cards and examples instead of naming flower varieties.',
+          title: 'Start with mood and style',
+          text: 'Pick the cards that feel visually closest instead of naming flower varieties.',
         },
         {
-          title: 'Mini Flinder inside',
-          text: 'There is a visual like / maybe / no round for real gift examples.',
+          title: 'Then rate real examples',
+          text: 'Mark which bouquets and floral gifts feel right, and which ones do not.',
         },
         {
-          title: 'A report without flower jargon',
-          text: 'You get safe picks, context picks, and clear red flags.',
+          title: 'Finish with a clear report',
+          text: 'You get safe picks, occasion cues, and a clear list of things to avoid.',
         },
       ],
       preview: {

@@ -859,7 +859,7 @@ export const questions: Question[] = [
     id: 'bouquetReactions',
     field: 'bouquetReactions',
     type: 'bouquet',
-    eyebrow: l('Mini Flinder', 'Mini Flinder'),
+    eyebrow: l('Примеры', 'Examples'),
     title: l('Оцени примеры: что прям да, что нет?', 'React to examples: what is a yes, maybe, or no?'),
     subtitle: l('Здесь уже видны и букеты, и живые растения, если ты их допускаешь.', 'This round uses real gift examples, including plants when they are still in play.'),
     helper: l('Нужно оценить хотя бы 5 примеров.', 'Rate at least 5 examples.'),
