@@ -17,7 +17,7 @@ const copy = {
       kicker: 'Формат, который подойдет лучше всего',
       title: 'Не чистый Tinder, а гибрид: быстрый квиз + визуальные реакции на букеты',
       text:
-        'Так девушке не нужно знать названия цветов, а тебе потом не придется расшифровывать полуслово про “вот такие нежные, но не слишком плотные”.',
+        'Так девушке не нужно знать названия цветов, а тебе потом не придется расшифровывать полуслово про “вот такие нежные, но не перегруженные”.',
       primaryCta: 'Собрать flower-passport',
       resumeCta: 'Продолжить черновик',
       facts: ['3 минуты', 'без ботанического жаргона', 'готовая ссылка для шаринга'],
@@ -111,7 +111,7 @@ const copy = {
       kicker: 'The best format for this problem',
       title: 'Not pure Tinder, but a hybrid: a quick quiz + visual bouquet reactions',
       text:
-        'She does not need to remember flower names, and you do not have to decode vague phrases like “soft, but not too dense, but still not boring.”',
+        'She does not need to remember flower names, and you do not have to decode vague phrases like “soft, but not too busy, while still not boring.”',
       primaryCta: 'Build the flower passport',
       resumeCta: 'Resume draft',
       facts: ['3-minute flow', 'no florist jargon', 'shareable result'],
