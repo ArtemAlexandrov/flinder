@@ -314,7 +314,7 @@ export const bouquets: BouquetCardData[] = [
   },
   {
     id: 'tulip-ribbon',
-    title: l('Ленточные тюльпаны', 'Ribbon tulips'),
+    title: l('Аккуратные тюльпаны', 'Simple tulips'),
     subtitle: l('Чисто, просто и очень уместно', 'Clean, simple, and very easy to get right'),
     note: l(
       'Идеально, когда хочется подарить цветы без пафоса.',
