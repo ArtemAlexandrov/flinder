@@ -13,7 +13,7 @@ import {
   bouquets,
   emptyAnswers,
   getLocaleData,
-  questions,
+  getVisibleQuestions,
 } from './data'
 import {
   clearPersistedAnswers,
@@ -62,10 +62,12 @@ function getInitialState(): InitialState {
   const sharedAnswers = decodeAnswers(window.location.hash)
 
   if (sharedAnswers) {
+    const visibleQuestions = getVisibleQuestions(sharedAnswers)
+
     return {
       answers: sharedAnswers,
       view: 'report',
-      stepIndex: questions.length - 1,
+      stepIndex: Math.max(visibleQuestions.length - 1, 0),
       hasDraft: hasMeaningfulAnswers(sharedAnswers),
       locale,
     }
@@ -92,15 +94,36 @@ function getMultiValues(answers: AnswerState, field: MultiQuestion['field']) {
   return answers[field] as string[]
 }
 
+function getVisibleBouquetExamples(answers: AnswerState) {
+  const pool =
+    answers.giftFormat === 'cut'
+      ? bouquets.filter((bouquet) => bouquet.giftKind === 'cut')
+      : [...bouquets]
+
+  if (answers.giftFormat !== 'potted') {
+    return pool
+  }
+
+  return pool.sort((left, right) => {
+    if (left.giftKind === right.giftKind) {
+      return 0
+    }
+
+    return left.giftKind === 'potted' ? -1 : 1
+  })
+}
+
 function buildSelectionTags(answers: AnswerState, locale: Locale) {
   const labels = getLocaleData(locale)
 
   return [
+    answers.giftFormat ? labels.giftFormatLabelMap[answers.giftFormat] : null,
     answers.vibe ? labels.vibeLabelMap[answers.vibe] : null,
     answers.shape ? labels.shapeLabelMap[answers.shape] : null,
     answers.palette[0] ? labels.paletteLabelMap[answers.palette[0]] : null,
     answers.likedFlowers[0] ? labels.flowerLabelMap[answers.likedFlowers[0]] : null,
-  ].filter(Boolean) as string[]
+    answers.wrappingStyle ? labels.wrappingLabelMap[answers.wrappingStyle] : null,
+  ].filter(Boolean).slice(0, 5) as string[]
 }
 
 function App() {
@@ -116,11 +139,16 @@ function App() {
 
   const copy = getCopy(locale)
   const localeData = getLocaleData(locale)
+  const visibleQuestions = useMemo(() => getVisibleQuestions(answers), [answers])
   const report = generateReport(answers, locale)
-  const currentQuestion = questions[stepIndex]
-  const progress = ((stepIndex + 1) / questions.length) * 100
+  const currentQuestion = visibleQuestions[stepIndex]
+  const progress = visibleQuestions.length ? ((stepIndex + 1) / visibleQuestions.length) * 100 : 0
   const progressRounded = Math.round(progress)
   const selectionTags = useMemo(() => buildSelectionTags(answers, locale), [answers, locale])
+  const stepLabel =
+    locale === 'ru'
+      ? `Шаг ${Math.min(stepIndex + 1, visibleQuestions.length)} из ${visibleQuestions.length}`
+      : `Step ${Math.min(stepIndex + 1, visibleQuestions.length)} of ${visibleQuestions.length}`
 
   useEffect(() => {
     if (!toast) {
@@ -148,6 +176,14 @@ function App() {
     const share = view === 'report' ? encodeAnswers(answers) : undefined
     window.history.replaceState(null, '', buildAppUrl(locale, share))
   }, [answers, locale, view])
+
+  useEffect(() => {
+    if (stepIndex < visibleQuestions.length) {
+      return
+    }
+
+    setStepIndex(Math.max(visibleQuestions.length - 1, 0))
+  }, [stepIndex, visibleQuestions.length])
 
   function pushToast(message: string) {
     setToast(message)
@@ -206,7 +242,10 @@ function App() {
       return answers[question.field].length >= question.minSelections
     }
 
-    return Object.keys(answers.bouquetReactions).length >= question.minSelections
+    return (
+      getVisibleBouquetExamples(answers).filter((bouquet) => answers.bouquetReactions[bouquet.id])
+        .length >= question.minSelections
+    )
   }
 
   function goNext() {
@@ -214,7 +253,7 @@ function App() {
       return
     }
 
-    if (stepIndex === questions.length - 1) {
+    if (stepIndex === visibleQuestions.length - 1) {
       startTransition(() => {
         setView('report')
       })
@@ -388,9 +427,7 @@ function App() {
           <section className="progress-card">
             <div className="progress-card__top">
               <div className="progress-copy">
-                <p className="section-kicker">
-                  {textOf(currentQuestion.eyebrow, locale)} / {questions.length}
-                </p>
+                <p className="section-kicker">{`${textOf(currentQuestion.eyebrow, locale)} • ${stepLabel}`}</p>
                 <h2>{textOf(currentQuestion.title, locale)}</h2>
                 <p>{textOf(currentQuestion.subtitle, locale)}</p>
                 {currentQuestion.helper ? (
@@ -496,7 +533,7 @@ function App() {
               onClick={goNext}
               type="button"
             >
-              {stepIndex === questions.length - 1 ? copy.quiz.buildReport : copy.quiz.next}
+              {stepIndex === visibleQuestions.length - 1 ? copy.quiz.buildReport : copy.quiz.next}
             </button>
           </footer>
         </main>
@@ -657,6 +694,11 @@ function OptionCard({
       onClick={onClick}
       type="button"
     >
+      {option.photoUrl ? (
+        <div className="option-card__media">
+          <img alt={textOf(option.label, locale)} className="option-card__image" src={option.photoUrl} />
+        </div>
+      ) : null}
       <div className="option-card__top">
         <span className="option-card__emoji">{option.emoji}</span>
         {selected ? <span className="option-card__badge">{badgeLabel}</span> : null}
@@ -688,7 +730,8 @@ function BouquetQuestionView({
   onReact: (bouquetId: string, reaction: BouquetReaction) => void
 }) {
   const localeData = getLocaleData(locale)
-  const ratedCount = Object.keys(answers.bouquetReactions).length
+  const visibleBouquets = getVisibleBouquetExamples(answers)
+  const ratedCount = visibleBouquets.filter((bouquet) => answers.bouquetReactions[bouquet.id]).length
 
   return (
     <>
@@ -701,43 +744,36 @@ function BouquetQuestionView({
         </span>
       </div>
       <div className="bouquet-grid">
-        {question.bouquetIds.map((bouquetId) => {
-          const bouquet = bouquets.find((item) => item.id === bouquetId)
-          if (!bouquet) {
-            return null
-          }
-
-          return (
-            <article className="bouquet-card" key={bouquet.id}>
-              <BouquetArt bouquet={bouquet} locale={locale} />
-              <div className="bouquet-card__body">
-                <div>
-                  <h3>{textOf(bouquet.title, locale)}</h3>
-                  <p>{textOf(bouquet.subtitle, locale)}</p>
-                </div>
-                <p className="bouquet-note">{textOf(bouquet.note, locale)}</p>
+        {visibleBouquets.map((bouquet) => (
+          <article className="bouquet-card" key={bouquet.id}>
+            <BouquetArt bouquet={bouquet} locale={locale} />
+            <div className="bouquet-card__body">
+              <div>
+                <h3>{textOf(bouquet.title, locale)}</h3>
+                <p>{textOf(bouquet.subtitle, locale)}</p>
               </div>
-              <div className="reaction-row">
-                {(
-                  ['like', 'maybe', 'no'] as BouquetReaction[]
-                ).map((reaction) => (
-                  <button
-                    className={`reaction-button${
-                      answers.bouquetReactions[bouquet.id] === reaction
-                        ? ' reaction-button--active'
-                        : ''
-                    }`}
-                    key={reaction}
-                    onClick={() => onReact(bouquet.id, reaction)}
-                    type="button"
-                  >
-                    {localeData.reactionLabels[reaction]}
-                  </button>
-                ))}
-              </div>
-            </article>
-          )
-        })}
+              <p className="bouquet-note">{textOf(bouquet.note, locale)}</p>
+            </div>
+            <div className="reaction-row">
+              {(
+                ['like', 'maybe', 'no'] as BouquetReaction[]
+              ).map((reaction) => (
+                <button
+                  className={`reaction-button${
+                    answers.bouquetReactions[bouquet.id] === reaction
+                      ? ' reaction-button--active'
+                      : ''
+                  }`}
+                  key={reaction}
+                  onClick={() => onReact(bouquet.id, reaction)}
+                  type="button"
+                >
+                  {localeData.reactionLabels[reaction]}
+                </button>
+              ))}
+            </div>
+          </article>
+        ))}
       </div>
     </>
   )

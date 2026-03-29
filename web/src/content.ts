@@ -9,13 +9,13 @@ const copy = {
     metaTitle: 'Flinder',
     topbar: {
       kicker: 'Flower passport builder',
-      note: 'Визуальный квиз, который превращает вкусы в понятный отчет.',
+      note: 'Визуальный квиз, который превращает вкус в понятный и практичный отчет.',
     },
     localeLabel: 'Язык',
     pickedBadge: 'твое',
     intro: {
       kicker: 'Формат, который подойдет лучше всего',
-      title: 'Не чистый Tinder, а гибрид: быстрый квиз + визуальные реакции на букеты',
+      title: 'Не чистый Tinder, а гибрид: быстрый квиз + визуальные реакции на цветочные варианты',
       text:
         'Так девушке не нужно знать названия цветов, а тебе потом не придется расшифровывать полуслово про “вот такие нежные, но не перегруженные”.',
       primaryCta: 'Собрать flower-passport',
@@ -32,7 +32,7 @@ const copy = {
         },
         {
           title: 'Мини Flinder внутри',
-          text: 'Есть визуальный этап с лайк / может быть / нет по букетам.',
+          text: 'Есть визуальный этап с лайк / может быть / нет по реальным примерам.',
         },
         {
           title: 'Итог без ботаники',
@@ -43,7 +43,7 @@ const copy = {
         kicker: 'Что будет в финале',
         title: 'Отчет, которым реально можно пользоваться в цветочном магазине',
         bullets: [
-          '3 безопасных букета “если сомневаюсь, беру это”',
+          '3 безопасных варианта “если сомневаюсь, беру это”',
           'Подходящие варианты на обычный день, день рождения, извинение и повод',
           'Отдельная секция “не дарить ни в коем случае”',
           'Ссылка, которую можно переслать без регистрации и бэкенда',
@@ -57,12 +57,18 @@ const copy = {
       summaryEmpty:
         'Пока пусто. Выбери пару карточек, и здесь появится быстрый портрет вкуса.',
       nudges: [
-        'Начинаем с самого простого: общего ощущения.',
-        'Палитра уже делает отчет гораздо точнее.',
+        'Начинаем с самого прикладного: какой формат подарка вообще нужен.',
+        'Общий вайб уже сужает круг намного сильнее, чем кажется.',
+        'Палитра делает будущий отчет гораздо точнее.',
         'Форма помогает отличить “мило” от “совсем не то”.',
         'Масштаб жеста спасает от слишком громких букетов.',
         'Любимые цветы почти всегда дают самые полезные подсказки.',
-        'Здесь срабатывает визуальная интуиция, а не знания терминов.',
+        'Это уже умное уточнение, чтобы отчет был не абстрактным.',
+        'Еще одно полезное уточнение по вкусу, а не по терминам.',
+        'Хорошая ветка: она как раз убирает неоднозначность.',
+        'Запах часто решает судьбу всего подарка.',
+        'Зелень и упаковка влияют на впечатление сильнее, чем кажется.',
+        'Теперь включаем визуальную интуицию на реальных примерах.',
         'Последний фильтр: что точно не стоит брать.',
       ],
       selectedLabel: 'Выбрано',
@@ -73,7 +79,7 @@ const copy = {
       back: 'Назад',
       next: 'Дальше',
       buildReport: 'Собрать отчет',
-      reactionLegend: 'Выбирай сердцем: это намного полезнее, чем пытаться вспомнить названия цветов.',
+      reactionLegend: 'Реагируй по ощущениям: это полезнее, чем пытаться объяснить вкус словами.',
     },
     report: {
       heroKicker: 'Готовый flower-passport',
@@ -83,7 +89,7 @@ const copy = {
       print: 'Печать / PDF',
       edit: 'Подправить ответы',
       safeKicker: 'Безопасная база',
-      safeTitle: 'Букеты, которые хорошо работают почти всегда',
+      safeTitle: 'Варианты, которые хорошо работают почти всегда',
       occasionKicker: 'По случаям',
       occasionTitle: 'Что дарить в разном контексте',
       noGoKicker: 'Красные флаги',
@@ -103,13 +109,13 @@ const copy = {
     metaTitle: 'Flinder',
     topbar: {
       kicker: 'Flower passport builder',
-      note: 'A visual quiz that turns taste into a practical bouquet brief.',
+      note: 'A visual quiz that turns taste into a practical floral gift brief.',
     },
     localeLabel: 'Language',
     pickedBadge: 'picked',
     intro: {
       kicker: 'The best format for this problem',
-      title: 'Not pure Tinder, but a hybrid: a quick quiz + visual bouquet reactions',
+      title: 'Not pure Tinder, but a hybrid: a quick quiz + visual reactions to floral gift examples',
       text:
         'She does not need to remember flower names, and you do not have to decode vague phrases like “soft, but not too busy, while still not boring.”',
       primaryCta: 'Build the flower passport',
@@ -126,7 +132,7 @@ const copy = {
         },
         {
           title: 'Mini Flinder inside',
-          text: 'There is a visual like / maybe / no round for actual bouquet examples.',
+          text: 'There is a visual like / maybe / no round for real gift examples.',
         },
         {
           title: 'A report without flower jargon',
@@ -137,7 +143,7 @@ const copy = {
         kicker: 'What you get in the end',
         title: 'A report you can actually use inside a flower shop',
         bullets: [
-          '3 safe bouquets for the “I am not sure, I will take this” moment',
+          '3 safe picks for the “I am not sure, I will take this” moment',
           'Recommendations for everyday dates, birthdays, apologies, and celebrations',
           'A separate “never buy this” section',
           'A link you can share without accounts or backend setup',
@@ -151,13 +157,19 @@ const copy = {
       summaryEmpty:
         'Nothing here yet. Pick a few cards and this space will turn into a quick taste snapshot.',
       nudges: [
-        'Start with the easiest thing: the overall feeling.',
-        'Color palette already makes the final brief much sharper.',
+        'Start with the practical thing first: what kind of floral gift is even right.',
+        'The overall mood already narrows the field more than it seems.',
+        'Color palette makes the final brief much sharper.',
         'Shape helps separate “cute” from “absolutely not”.',
-        'Gesture size saves you from bouquets that feel way too loud.',
+        'Gesture size saves you from gifts that feel way too loud.',
         'Favorite flowers usually create the clearest recommendations.',
-        'This is the visual instinct round, not a terminology test.',
-        'Final filter: what should never make it into the bouquet.',
+        'This follow-up is here to turn vague taste into usable detail.',
+        'Another useful nuance pass, still based on visuals not jargon.',
+        'This branch helps remove ambiguity before the final examples.',
+        'Scent can easily make or break the whole gift.',
+        'Greenery and wrapping matter more than most people expect.',
+        'Now we use real examples and pure visual instinct.',
+        'Final filter: what should never make it into the gift.',
       ],
       selectedLabel: 'Selected',
       minimumLabel: 'Minimum',
@@ -168,7 +180,7 @@ const copy = {
       next: 'Next',
       buildReport: 'Build report',
       reactionLegend:
-        'React instinctively here. That is much more useful than trying to name flowers correctly.',
+        'React instinctively here. That is much more useful than trying to explain taste perfectly.',
     },
     report: {
       heroKicker: 'Ready flower passport',
@@ -178,7 +190,7 @@ const copy = {
       print: 'Print / PDF',
       edit: 'Edit answers',
       safeKicker: 'Safe base',
-      safeTitle: 'Bouquets that work well almost every time',
+      safeTitle: 'Picks that work well almost every time',
       occasionKicker: 'By occasion',
       occasionTitle: 'What to buy in different situations',
       noGoKicker: 'Red flags',

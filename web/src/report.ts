@@ -11,12 +11,19 @@ import type {
   BouquetCardData,
   BouquetReaction,
   FlowerFamilyId,
+  GiftFormatId,
+  GreeneryLevelId,
   Locale,
   OccasionId,
   PaletteId,
+  PlantStyleId,
   RankedBouquet,
+  RoseStyleId,
   ReportData,
   ReportNoGoItem,
+  ScentLevelId,
+  TulipStyleId,
+  WrappingStyleId,
 } from './types'
 
 export const STORAGE_KEY = 'flinder.answers.v1'
@@ -37,6 +44,13 @@ const occasionOrder: OccasionId[] = [
 
 function dedupe(items: string[]) {
   return [...new Set(items)]
+}
+
+function normalizeSingleValue<T extends string>(
+  value: unknown,
+  set: Set<T>,
+) {
+  return typeof value === 'string' && set.has(value as T) ? (value as T) : undefined
 }
 
 function paletteMatches(bouquet: BouquetCardData, palette: PaletteId[]) {
@@ -63,6 +77,42 @@ function scoreBouquet(
         ? `совпадает по вайбу: ${labels.vibeLabelMap[answers.vibe].toLowerCase()}`
         : `matches the vibe: ${labels.vibeLabelMap[answers.vibe].toLowerCase()}`,
     )
+  }
+
+  if (answers.giftFormat) {
+    if (answers.giftFormat === 'both') {
+      score += bouquet.giftKind === 'cut' ? 1 : 0
+    } else if (answers.giftFormat === 'cut') {
+      if (bouquet.giftKind === 'cut') {
+        score += 3
+        reasons.push(
+          locale === 'ru'
+            ? 'совпадает по формату: именно букет'
+            : 'matches the preferred format: bouquet',
+        )
+      } else {
+        score -= 8
+        concerns.push(
+          locale === 'ru'
+            ? 'предпочтение было не в пользу растений в горшке'
+            : 'the preference leaned away from potted plants',
+        )
+      }
+    } else if (bouquet.giftKind === 'potted') {
+      score += 5
+      reasons.push(
+        locale === 'ru'
+          ? 'совпадает по формату: растение в горшке'
+          : 'matches the preferred format: potted plant',
+      )
+    } else {
+      score -= 6
+      concerns.push(
+        locale === 'ru'
+          ? 'предпочтение было в пользу растений в горшке'
+          : 'the preference leaned toward potted plants',
+      )
+    }
   }
 
   if (answers.shape && bouquet.shapes.includes(answers.shape)) {
@@ -101,6 +151,77 @@ function scoreBouquet(
     }
   }
 
+  if (answers.scentLevel) {
+    if (bouquet.scentLevel === answers.scentLevel) {
+      score += 2
+      reasons.push(
+        locale === 'ru'
+          ? `по аромату это ${labels.scentLabelMap[answers.scentLevel].toLowerCase()}`
+          : `scent-wise it feels ${labels.scentLabelMap[answers.scentLevel].toLowerCase()}`,
+      )
+    } else if (answers.scentLevel === 'low' && bouquet.scentLevel === 'strong') {
+      score -= 5
+      concerns.push(
+        locale === 'ru' ? 'аромат может оказаться слишком сильным' : 'the scent may feel too strong',
+      )
+    } else if (answers.scentLevel === 'strong' && bouquet.scentLevel === 'low') {
+      score -= 1
+      concerns.push(
+        locale === 'ru'
+          ? 'может не дать желаемого ароматного эффекта'
+          : 'may feel less fragrant than desired',
+      )
+    }
+  }
+
+  if (answers.greeneryLevel) {
+    if (bouquet.greeneryLevel === answers.greeneryLevel) {
+      score += 2
+      reasons.push(
+        locale === 'ru'
+          ? `по зелени это ${labels.greeneryLabelMap[answers.greeneryLevel].toLowerCase()}`
+          : `greenery level feels ${labels.greeneryLabelMap[answers.greeneryLevel].toLowerCase()}`,
+      )
+    } else if (answers.greeneryLevel === 'minimal' && bouquet.greeneryLevel === 'lush') {
+      score -= 2
+      concerns.push(
+        locale === 'ru' ? 'может быть слишком много зелени' : 'may include too much greenery',
+      )
+    } else if (answers.greeneryLevel === 'lush' && bouquet.greeneryLevel === 'minimal') {
+      score -= 1
+      concerns.push(
+        locale === 'ru'
+          ? 'может показаться слишком “чистым”'
+          : 'may feel a little too stripped-back',
+      )
+    }
+  }
+
+  if (answers.wrappingStyle) {
+    if (bouquet.wrappingStyle === answers.wrappingStyle) {
+      score += 2
+      reasons.push(
+        locale === 'ru'
+          ? `по оформлению это ${labels.wrappingLabelMap[answers.wrappingStyle].toLowerCase()}`
+          : `presentation feels ${labels.wrappingLabelMap[answers.wrappingStyle].toLowerCase()}`,
+      )
+    } else if (answers.wrappingStyle === 'bare' && bouquet.wrappingStyle === 'decorative') {
+      score -= 2
+      concerns.push(
+        locale === 'ru'
+          ? 'упаковка может ощущаться слишком нарядной'
+          : 'the wrapping may feel too dressed-up',
+      )
+    } else if (answers.wrappingStyle === 'decorative' && bouquet.wrappingStyle === 'bare') {
+      score -= 1
+      concerns.push(
+        locale === 'ru'
+          ? 'может показаться слишком простым по подаче'
+          : 'may feel too plain in presentation',
+      )
+    }
+  }
+
   const matchedPalette = paletteMatches(bouquet, answers.palette)
 
   if (matchedPalette.length > 0) {
@@ -135,6 +256,75 @@ function scoreBouquet(
             locale,
           )}`,
     )
+  }
+
+  if (answers.roseStyle && answers.likedFlowers.includes('roses') && bouquet.roseStyle) {
+    if (bouquet.roseStyle === answers.roseStyle) {
+      score += 2
+      reasons.push(
+        locale === 'ru'
+          ? `если розы, то это формат ${labels.roseStyleLabelMap[answers.roseStyle].toLowerCase()}`
+          : `for roses, this lands in the ${labels.roseStyleLabelMap[
+              answers.roseStyle
+            ].toLowerCase()} zone`,
+      )
+    } else if (bouquet.flowerFamilies.includes('roses')) {
+      score -= 1
+      concerns.push(
+        locale === 'ru'
+          ? 'тип роз может быть не самым точным попаданием'
+          : 'the rose styling may miss the preferred nuance',
+      )
+    }
+  }
+
+  if (answers.tulipStyle && answers.likedFlowers.includes('tulips') && bouquet.tulipStyle) {
+    if (bouquet.tulipStyle === answers.tulipStyle) {
+      score += 2
+      reasons.push(
+        locale === 'ru'
+          ? `тюльпанный вайб совпадает: ${labels.tulipStyleLabelMap[
+              answers.tulipStyle
+            ].toLowerCase()}`
+          : `the tulip styling matches: ${labels.tulipStyleLabelMap[
+              answers.tulipStyle
+            ].toLowerCase()}`,
+      )
+    } else if (bouquet.flowerFamilies.includes('tulips')) {
+      score -= 1
+      concerns.push(
+        locale === 'ru'
+          ? 'подача тюльпанов может быть не той'
+          : 'the tulip presentation may feel slightly off',
+      )
+    }
+  }
+
+  if (
+    answers.plantStyle &&
+    (answers.giftFormat === 'potted' || answers.giftFormat === 'both') &&
+    bouquet.giftKind === 'potted' &&
+    bouquet.plantStyle
+  ) {
+    if (bouquet.plantStyle === answers.plantStyle) {
+      score += 2
+      reasons.push(
+        locale === 'ru'
+          ? `по формату растения это ${labels.plantStyleLabelMap[
+              answers.plantStyle
+            ].toLowerCase()}`
+          : `the plant style lands in ${labels.plantStyleLabelMap[
+              answers.plantStyle
+            ].toLowerCase()}`,
+      )
+    } else {
+      score -= 1
+      concerns.push(
+        locale === 'ru'
+          ? 'тип растения может быть не самым точным'
+          : 'the plant type may miss the preferred nuance',
+      )
+    }
   }
 
   const avoidedFlowers = answers.avoidFlowers.filter((flower) =>
@@ -226,10 +416,26 @@ function isHardNoGo(item: RankedBouquet, answers: AnswerState) {
 function buildHeadline(answers: AnswerState, locale: Locale) {
   const labels = getLocaleData(locale)
 
+  if (answers.giftFormat && answers.vibe) {
+    return locale === 'ru'
+      ? `Профиль: ${labels.giftFormatLabelMap[answers.giftFormat].toLowerCase()}, ${labels.vibeLabelMap[
+          answers.vibe
+        ].toLowerCase()}`
+      : `Profile: ${labels.giftFormatLabelMap[answers.giftFormat].toLowerCase()}, ${labels.vibeLabelMap[
+          answers.vibe
+        ].toLowerCase()}`
+  }
+
   if (answers.vibe) {
     return locale === 'ru'
       ? `Букетный вайб: ${labels.vibeLabelMap[answers.vibe].toLowerCase()}`
       : `Bouquet vibe: ${labels.vibeLabelMap[answers.vibe].toLowerCase()}`
+  }
+
+  if (answers.giftFormat) {
+    return locale === 'ru'
+      ? `Формат: ${labels.giftFormatLabelMap[answers.giftFormat]}`
+      : `Format: ${labels.giftFormatLabelMap[answers.giftFormat]}`
   }
 
   return locale === 'ru' ? 'Букетный вайб: безопасно и с заботой' : 'Bouquet vibe: safe and thoughtful'
@@ -240,6 +446,11 @@ function buildSummary(answers: AnswerState, locale: Locale, safeChoice?: RankedB
   const palette = answers.palette.map((item) => labels.paletteLabelMap[item].toLowerCase())
   const flowers = answers.likedFlowers.map((item) => labels.flowerLabelMap[item].toLowerCase())
   const bits = [
+    answers.giftFormat
+      ? locale === 'ru'
+        ? `формат: ${labels.giftFormatLabelMap[answers.giftFormat].toLowerCase()}`
+        : `format: ${labels.giftFormatLabelMap[answers.giftFormat].toLowerCase()}`
+      : null,
     answers.shape
       ? locale === 'ru'
         ? `форма: ${labels.shapeLabelMap[answers.shape].toLowerCase()}`
@@ -254,6 +465,16 @@ function buildSummary(answers: AnswerState, locale: Locale, safeChoice?: RankedB
       ? locale === 'ru'
         ? `любимые цветы: ${formatList(flowers, locale)}`
         : `favorite flowers: ${formatList(flowers, locale)}`
+      : null,
+    answers.scentLevel
+      ? locale === 'ru'
+        ? `аромат: ${labels.scentLabelMap[answers.scentLevel].toLowerCase()}`
+        : `scent: ${labels.scentLabelMap[answers.scentLevel].toLowerCase()}`
+      : null,
+    answers.wrappingStyle
+      ? locale === 'ru'
+        ? `оформление: ${labels.wrappingLabelMap[answers.wrappingStyle].toLowerCase()}`
+        : `wrapping: ${labels.wrappingLabelMap[answers.wrappingStyle].toLowerCase()}`
       : null,
     safeChoice
       ? locale === 'ru'
@@ -272,6 +493,52 @@ function buildNoGoItems(locale: Locale, answers: AnswerState, ranked: RankedBouq
   const labels = getLocaleData(locale)
   const items: ReportNoGoItem[] = []
   const seen = new Set<string>()
+
+  if (answers.giftFormat === 'cut') {
+    const title = locale === 'ru' ? 'Растения в горшке вместо букета' : 'Potted plants instead of bouquets'
+    seen.add(title)
+    items.push({
+      title,
+      reason:
+        locale === 'ru'
+          ? 'Здесь ожидание скорее про букетный жест, а не про подарок для ухода.'
+          : 'This preference leans toward a bouquet gesture, not a care-taking plant gift.',
+      colors: ['#adc178', '#dde5b6', '#f5efe2'],
+      emoji: '🪴',
+    })
+  }
+
+  if (answers.scentLevel === 'low') {
+    const title = locale === 'ru' ? 'Сильный аромат' : 'Strong floral scent'
+    if (!seen.has(title)) {
+      seen.add(title)
+      items.push({
+        title,
+        reason:
+          locale === 'ru'
+            ? 'Лучше не рисковать лилиями и другими очень ароматными вариантами.'
+            : 'Better not risk lilies or other very scented options here.',
+        colors: ['#fff8ef', '#ffe8cc', '#f4d35e'],
+        emoji: '🌺',
+      })
+    }
+  }
+
+  if (answers.wrappingStyle === 'bare') {
+    const title = locale === 'ru' ? 'Слишком нарядная упаковка' : 'Overly decorative wrapping'
+    if (!seen.has(title)) {
+      seen.add(title)
+      items.push({
+        title,
+        reason:
+          locale === 'ru'
+            ? 'Лучше минимально и спокойно, без ощущения “слишком старались с декором”.'
+            : 'Keep the presentation cleaner and calmer, without overdecorating it.',
+        colors: ['#f5efe2', '#d8d2ca', '#fff8ef'],
+        emoji: '🎀',
+      })
+    }
+  }
 
   for (const flower of answers.avoidFlowers) {
     const label = labels.flowerLabelMap[flower]
@@ -378,6 +645,14 @@ function buildCheatSheet(
     )
   }
 
+  if (answers.giftFormat) {
+    lines.push(
+      locale === 'ru'
+        ? `Формат по умолчанию: ${labels.giftFormatLabelMap[answers.giftFormat].toLowerCase()}.`
+        : `Default format: ${labels.giftFormatLabelMap[answers.giftFormat].toLowerCase()}.`,
+    )
+  }
+
   if (answers.palette.length > 0) {
     lines.push(
       locale === 'ru'
@@ -389,6 +664,22 @@ function buildCheatSheet(
             answers.palette.map((item) => labels.paletteLabelMap[item].toLowerCase()),
             locale,
           )}.`,
+    )
+  }
+
+  if (answers.scentLevel) {
+    lines.push(
+      locale === 'ru'
+        ? `По аромату держись уровня: ${labels.scentLabelMap[answers.scentLevel].toLowerCase()}.`
+        : `Keep the scent around: ${labels.scentLabelMap[answers.scentLevel].toLowerCase()}.`,
+    )
+  }
+
+  if (answers.wrappingStyle) {
+    lines.push(
+      locale === 'ru'
+        ? `По оформлению ориентир: ${labels.wrappingLabelMap[answers.wrappingStyle].toLowerCase()}.`
+        : `Presentation cue: ${labels.wrappingLabelMap[answers.wrappingStyle].toLowerCase()}.`,
     )
   }
 
@@ -426,6 +717,7 @@ export function generateReport(answers: AnswerState, locale: Locale = DEFAULT_LO
   })
 
   const moodTags = [
+    answers.giftFormat ? labels.giftFormatLabelMap[answers.giftFormat] : null,
     answers.vibe ? labels.vibeLabelMap[answers.vibe] : null,
     answers.shape ? labels.shapeLabelMap[answers.shape] : null,
     answers.gestureLevel ? labels.gestureLabelMap[answers.gestureLevel] : null,
@@ -470,6 +762,34 @@ function normalizePalette(values: unknown) {
   )
 }
 
+function normalizeSingleGiftFormat(value: unknown) {
+  return normalizeSingleValue<GiftFormatId>(value, validIds.giftFormats)
+}
+
+function normalizeSingleScent(value: unknown) {
+  return normalizeSingleValue<ScentLevelId>(value, validIds.scents)
+}
+
+function normalizeSingleGreenery(value: unknown) {
+  return normalizeSingleValue<GreeneryLevelId>(value, validIds.greenery)
+}
+
+function normalizeSingleWrapping(value: unknown) {
+  return normalizeSingleValue<WrappingStyleId>(value, validIds.wrapping)
+}
+
+function normalizeSingleRoseStyle(value: unknown) {
+  return normalizeSingleValue<RoseStyleId>(value, validIds.roseStyles)
+}
+
+function normalizeSingleTulipStyle(value: unknown) {
+  return normalizeSingleValue<TulipStyleId>(value, validIds.tulipStyles)
+}
+
+function normalizeSinglePlantStyle(value: unknown) {
+  return normalizeSingleValue<PlantStyleId>(value, validIds.plantStyles)
+}
+
 function normalizeFlowers(values: unknown) {
   if (!Array.isArray(values)) {
     return []
@@ -506,6 +826,7 @@ export function normalizeAnswers(value: unknown): AnswerState {
   const candidate = value as Partial<AnswerState>
 
   return {
+    giftFormat: normalizeSingleGiftFormat(candidate.giftFormat),
     vibe:
       typeof candidate.vibe === 'string' && validIds.vibes.has(candidate.vibe)
         ? candidate.vibe
@@ -520,7 +841,13 @@ export function normalizeAnswers(value: unknown): AnswerState {
       validIds.gestures.has(candidate.gestureLevel)
         ? candidate.gestureLevel
         : undefined,
+    scentLevel: normalizeSingleScent(candidate.scentLevel),
+    greeneryLevel: normalizeSingleGreenery(candidate.greeneryLevel),
+    wrappingStyle: normalizeSingleWrapping(candidate.wrappingStyle),
     likedFlowers: normalizeFlowers(candidate.likedFlowers),
+    roseStyle: normalizeSingleRoseStyle(candidate.roseStyle),
+    tulipStyle: normalizeSingleTulipStyle(candidate.tulipStyle),
+    plantStyle: normalizeSinglePlantStyle(candidate.plantStyle),
     avoidFlowers: normalizeFlowers(candidate.avoidFlowers),
     bouquetReactions: normalizeReactions(candidate.bouquetReactions),
   }
@@ -528,11 +855,18 @@ export function normalizeAnswers(value: unknown): AnswerState {
 
 export function hasMeaningfulAnswers(answers: AnswerState) {
   return Boolean(
-    answers.vibe ||
+    answers.giftFormat ||
+      answers.vibe ||
       answers.shape ||
       answers.gestureLevel ||
+      answers.scentLevel ||
+      answers.greeneryLevel ||
+      answers.wrappingStyle ||
       answers.palette.length ||
       answers.likedFlowers.length ||
+      answers.roseStyle ||
+      answers.tulipStyle ||
+      answers.plantStyle ||
       answers.avoidFlowers.length ||
       Object.keys(answers.bouquetReactions).length,
   )

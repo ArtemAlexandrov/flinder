@@ -32,6 +32,7 @@ MVP state can live in React state plus localStorage.
 Required state areas:
 
 - current step
+- visible step list derived from answers
 - answers by question id
 - selected bouquet reactions
 - derived profile
@@ -70,6 +71,8 @@ Suggested entities:
 - `FlowerFamily`
 - `OccasionRule`
 - `ReportSection`
+- `VisibilityRule`
+- `PreferenceFacet`
 
 ## 6. Dynamic Flow Requirements
 
@@ -84,12 +87,19 @@ Each question should define:
 - answer options
 - celebration message after selection
 - visibility conditions
+- optional image per answer option
 
 Supported answer types in MVP:
 
 - single-select cards
 - multi-select chips
 - like / maybe / dislike bouquet cards
+
+Additional flow constraints:
+
+- base questions should be stable and always visible
+- follow-up questions should be injected conditionally after relevant answers
+- each answer card should support real-photo media, not just emoji or swatches
 
 ## 7. Report Generation Requirements
 
@@ -101,6 +111,12 @@ The report generator should derive:
 - flowers to avoid
 - bouquet styles to avoid
 - quick cheat sheet for the partner
+- nuanced rules from conditional answers:
+  - gift format preference
+  - scent tolerance
+  - greenery preference
+  - wrapping preference
+  - flower-family-specific notes
 
 Generation does not need AI.
 It can be based on deterministic scoring rules from user answers.
@@ -112,6 +128,7 @@ It can be based on deterministic scoring rules from user answers.
 - highly visual card-based interactions
 - playful motion for transitions and confirmations
 - accessible contrast and clear touch targets
+- image cards should remain readable and tappable on mobile width
 
 ## 9. Design System Requirements
 
@@ -151,6 +168,8 @@ Minimum checks for MVP:
 - shared report URL opens correctly
 - major flow works on mobile width
 - no broken states when refreshing the page
+- conditional questions appear and disappear correctly based on answers
+- photo-driven cards do not break layout on narrow screens
 
 ## 13. Future-Friendly Extensions
 

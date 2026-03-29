@@ -19,12 +19,15 @@
 - build reusable card-based question components
 - add progress and celebration feedback
 - add conditional step navigation
+- support photo-based answer cards for every question
+- add question visibility rules and branch ordering
 
 ## Phase 4. Bouquet Tinder Layer
 
 - create bouquet example dataset
 - build like / maybe / dislike interaction
 - connect bouquet reactions to preference profile
+- extend dataset attributes so follow-up answers influence scoring
 
 ## Phase 5. Report Generator
 
@@ -42,6 +45,8 @@
 - improve motion and microcopy
 - refine mobile spacing and hierarchy
 - improve empty and edge states
+- remove unclear florist terms in favor of plain-language labels
+- ensure every key preference question has real visual examples
 
 ## Phase 7. Validation And Deployment
 

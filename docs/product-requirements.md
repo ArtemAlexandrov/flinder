@@ -23,12 +23,12 @@ Why this works better than a pure Tinder mechanic:
 
 Recommended experience structure:
 
-1. Quick mood pick
-2. Visual choices about colors, bouquet density, and vibe
+1. Base visual flow with 6 to 8 quick questions for everyone
+2. Conditional follow-up questions based on previous answers
 3. Swipe/like-dislike step for bouquet examples
-4. Occasion-specific preferences
-5. Hard no-go flowers and anti-examples
-6. Final report with concrete examples
+4. Occasion-specific recommendations
+5. Hard no-go flowers, formats, and anti-examples
+6. Final report with concrete examples and practical buying rules
 
 ## 3. Users
 
@@ -70,6 +70,10 @@ When I need to buy flowers for my girlfriend, I want a clear report with example
 - modern vs classic bouquet feel
 - mono bouquet vs mixed bouquet
 - neat and clean vs airy and wild
+- cut bouquet vs potted plant openness
+- low-key gesture vs wow gesture
+- minimal greenery vs abundant greenery
+- minimal wrap vs decorative presentation
 
 ### Color preferences
 
@@ -84,6 +88,10 @@ When I need to buy flowers for my girlfriend, I want a clear report with example
 - neutral flowers
 - disliked flowers
 - absolute no-go flowers
+- flower-specific nuance when relevant:
+  - preferred rose style
+  - preferred tulip style
+  - preferred potted plant type
 
 ### Occasion logic
 
@@ -99,6 +107,10 @@ When I need to buy flowers for my girlfriend, I want a clear report with example
 - flowers that feel funeral-like
 - bouquets that feel cheap
 - bouquet styles that look generic or impersonal
+- bouquets with too much packaging
+- bouquets with too much greenery
+- bouquets with a scent profile that feels too strong
+- gift formats that feel wrong for the user
 
 ## 8. Functional Requirements
 
@@ -107,9 +119,11 @@ When I need to buy flowers for my girlfriend, I want a clear report with example
 - user can start the experience without registration
 - questions are short and visually driven
 - each step has large answer cards and minimal text
+- every question has a visual anchor through real photos or image-based examples
 - progress is visible
 - after each answer the interface gives a playful positive reaction
 - some next questions adapt based on previous answers
+- follow-up questions should appear only when they improve recommendation quality
 
 ### Bouquet Tinder Step
 
@@ -134,6 +148,8 @@ When I need to buy flowers for my girlfriend, I want a clear report with example
 - strong visual hierarchy
 - interactions should feel rewarding after every step
 - no flower expertise required from the user
+- terminology should stay human and non-florist
+- the flow should feel smart, not long: fewer mandatory questions, more useful follow-ups
 
 ## 10. Content Principles
 
@@ -141,6 +157,8 @@ When I need to buy flowers for my girlfriend, I want a clear report with example
 - use simple labels like "light and airy" instead of expert terminology
 - explain dislikes gently and clearly
 - final advice should be practical, not abstract
+- when detailed nuance is needed, ask through pictures, not technical terms
+- if a specific flower family is selected, follow-up questions should describe visual differences in plain language
 
 ## 11. Success Criteria For MVP
 
